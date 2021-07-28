@@ -1,30 +1,32 @@
-#define RESET_OUT_PIN A0
-#define VIDEOMODE_PIN A2
-#define LANGUAGE_PIN A3
+#define VIDEOMODE_PIN A1 // JP1/JP2
+#define LANGUAGE_PIN A2 // JP3/JP4
+#define LED_BLINK A3 //common cathode/gnd, replace actual led "low battery" and wire the third pin of the led to LED_BLINK pin
 
-#define MD_BTN_START 2
-#define MD_BTN_UP 3
+// each of these pin are active low
+#define RESET_OUT_PIN A0
+#define MD_BTN_START 3
 #define MD_BTN_DOWN 4
 #define MD_BTN_LEFT 5
 #define MD_BTN_RIGHT 6
 #define MD_BTN_A 7
 #define MD_BTN_B 8
-#define MD_BTN_C 9
 
-// pour activer les combos, mettre des + 
-#define TRIGGER_COMBO (MD_BTN_START + MD_BTN_B)
+//#define TRIGGER_COMBO (MD_BTN_START+MD_BTN_A)
 
-#define RESET_COMBO (MD_BTN_A + MD_BTN_C)
+#define RESET_COMBO MD_BTN_B
 
 #define EUR_COMBO MD_BTN_DOWN
 #define USA_COMBO MD_BTN_RIGHT
 #define JAP_COMBO MD_BTN_LEFT
 
-// 8 entries and index from 0 to 7
-int button_pins[8] = { MD_BTN_START, MD_BTN_UP, MD_BTN_DOWN, MD_BTN_LEFT, MD_BTN_RIGHT, MD_BTN_A, MD_BTN_B, MD_BTN_C };
+// 6 entries and last_index is 5 -> for testing purposes
+int button_pins[6] = { MD_BTN_START, MD_BTN_DOWN, MD_BTN_LEFT, MD_BTN_RIGHT, MD_BTN_A, MD_BTN_B };
+
+unsigned long last_index = 5; // last index
+
 int output_pins[3] = { RESET_OUT_PIN, VIDEOMODE_PIN, LANGUAGE_PIN };
 
-unsigned long debounceDuration = 1000; // millis
+unsigned long debounceDuration = 100; // millis
 unsigned long lastTimeButtonStateChanged = 0; // initialisation
 
 // longueur du contact qui fait reset sur le pin 17
@@ -33,7 +35,7 @@ const unsigned long RESET_LEN = 350U;
 word lastButtonState = "";
 
 void setup() {
-    for (int i = 0; i <= 7; i++)
+    for (int i = 0; i <= last_index; i++)
     {
       pinMode(button_pins[i], INPUT);
     }
@@ -42,12 +44,34 @@ void setup() {
       pinMode(output_pins[j], OUTPUT);
       digitalWrite (output_pins[j], HIGH);
     }
+    pinMode(LED_BUILTIN, OUTPUT); 
+    pinMode(LED_BLINK, OUTPUT);
+    digitalWrite (LED_BLINK, LOW);
+    // force 50hz, the arduino does not respond after the main menu
+    if(digitalRead(MD_BTN_START) == LOW){
+      digitalWrite (VIDEOMODE_PIN, LOW);
+    }
+    // force JAP
+    if(digitalRead(MD_BTN_A) == LOW){
+      digitalWrite (LANGUAGE_PIN, LOW);
+    }
+
 }
 
+void led_blinker (int j) {
+  for (byte i = 0; i < j; ++i) {
+    digitalWrite (LED_BUILTIN, HIGH);
+    digitalWrite (LED_BLINK, HIGH);
+    delay (500);
+    digitalWrite (LED_BUILTIN, LOW);
+    digitalWrite (LED_BLINK, HIGH);
+    delay (500);
+  }
+}
 
 word read_pad () {
   word buttonscombo = 0;
-    for (int i = 0; i <= 7; i++)
+    for (int i = 0; i <= last_index; i++)
     {
       byte buttonHere = digitalRead(button_pins[i]);
         if (buttonHere == LOW)
@@ -66,35 +90,35 @@ void loop() {
     if (buttonState != lastButtonState) {
       lastTimeButtonStateChanged = millis();
       lastButtonState = buttonState;
-      
+
       // Reset
-      if (buttonState == (bit(TRIGGER_COMBO) + bit(RESET_COMBO))) {
+      if (buttonState == (bit(MD_BTN_START) + bit(MD_BTN_A) + bit(RESET_COMBO))) {
         digitalWrite (RESET_OUT_PIN, LOW);
         delay (RESET_LEN);
         digitalWrite (RESET_OUT_PIN, HIGH);
+        led_blinker(1);
       }
       
       // EURO
-      if (buttonState == (bit(TRIGGER_COMBO) + bit(EUR_COMBO))) {
+      if (buttonState == (bit(MD_BTN_START) + bit(MD_BTN_A) + bit(EUR_COMBO))) {
         digitalWrite (VIDEOMODE_PIN, LOW);
         digitalWrite (LANGUAGE_PIN, HIGH);
+        led_blinker(3);
       }
 
       // USA
-      if (buttonState == (bit(TRIGGER_COMBO) + bit(USA_COMBO))) {
+      if (buttonState == (bit(MD_BTN_START) + bit(MD_BTN_A) + bit(USA_COMBO))) {
         digitalWrite (VIDEOMODE_PIN, HIGH);
         digitalWrite (LANGUAGE_PIN, HIGH);
+        led_blinker(1);
       }
 
       // JAP
-      if (buttonState == (bit(TRIGGER_COMBO) + bit(JAP_COMBO))) {
+      if (buttonState == (bit(MD_BTN_START) + bit(MD_BTN_A) + bit(JAP_COMBO))) {
         digitalWrite (VIDEOMODE_PIN, HIGH);
         digitalWrite (LANGUAGE_PIN, LOW);
+        led_blinker(2);
       }
-// une solution pour toggle des états, 
-//      ledState = (ledState == HIGH) ? LOW: HIGH;
-//      digitalWrite(VideoPin, ledState);
-//        
     }
   }
 }
