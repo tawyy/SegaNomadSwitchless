@@ -2,6 +2,16 @@
 #define LANGUAGE_PIN A2 // JP3/JP4
 #define LED_BLINK A3 //common cathode/gnd, replace actual led "low battery" and wire the third pin of the led to LED_BLINK pin
 
+// default low set pin high to activate menu control
+// http://wr-labs.com/2018/06/09/sega-nomad-lcd-upgrade-part-2-lcd-brightness-menu-control/
+// each of these output needs to be soldered to a resistor with the correct value and the LCD CTRL+ on the other side
+// + button 1kohm
+// #define LCD_BTN_PLUS A4
+// - button 4.7kohm
+// #define LCD_BTN_MINUS A5
+// menu button 2kohm
+// #define LCD_BTN_MENU A6
+
 // each of these pin are active low
 #define RESET_OUT_PIN A0
 #define MD_BTN_START 3
